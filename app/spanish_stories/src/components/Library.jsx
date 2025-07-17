@@ -1,66 +1,46 @@
-import { useEffect, useState, useRef } from 'react';
-import { db } from '../firebase';
+import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 
-function Library() {
+const Library = () => {
   const [stories, setStories] = useState([]);
-  const [currentAudio, setCurrentAudio] = useState(null);
-  const audioRef = useRef(null);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    async function fetchStories() {
+    const fetchStories = async () => {
       const snapshot = await getDocs(collection(db, 'stories'));
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setStories(data);
-    }
+    };
+
     fetchStories();
   }, []);
 
-  const handlePlay = (url) => {
-    if (audioRef.current) {
-      if (audioRef.current.src !== url) {
-        audioRef.current.src = url;
-      }
-      audioRef.current.play();
-      setCurrentAudio(url);
-    }
-  };
-
-  const handlePause = () => {
-    audioRef.current.pause();
-  };
-
-  const handleTimeUpdate = () => {
-    const current = audioRef.current.currentTime;
-    const duration = audioRef.current.duration;
-    if (duration > 0) {
-      setProgress((current / duration) * 100);
-    }
-  };
-
   return (
-    <div style={{ maxWidth: '800px', marginTop: '2rem' }}>
-      <h2>Story Library</h2>
-      <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} style={{ display: 'none' }} />
-
-      {stories.map((story) => (
-        <div key={story.id} style={{ border: '1px solid #ccc', padding: '1rem', marginBottom: '1rem' }}>
-          <h3>{story.title}</h3>
-          <p>{story.text}</p>
-          <div style={{ marginTop: '1rem' }}>
-            <button onClick={() => handlePlay(story.audioUrl)}>
-              {currentAudio === story.audioUrl ? 'Resume' : 'Play'}
-            </button>
-            <button onClick={handlePause} style={{ marginLeft: '1rem' }}>Pause</button>
-            <div style={{ height: '5px', background: '#ddd', marginTop: '1rem' }}>
-              <div style={{ height: '5px', background: '#3b82f6', width: `${progress}%` }} />
-            </div>
+    <div style={{ padding: '2rem' }}>
+      <h1>Story Library</h1>
+      {stories.length === 0 ? (
+        <p>No stories found.</p>
+      ) : (
+        stories.map((story) => (
+          <div key={story.id} style={{ marginBottom: '2rem' }}>
+            <h2>{story.title}</h2>
+            <p>{story.text}</p>
+            {story.audioFilename ? (
+              <audio controls style={{ width: '100%' }}>
+                <source
+                  src={`http://localhost:5001/audio/${story.audioFilename}`}
+                  type="audio/mp3"
+                />
+                Your browser does not support the audio element.
+              </audio>
+            ) : (
+              <p style={{ color: 'red' }}>No audio available</p>
+            )}
           </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
-}
+};
 
 export default Library;
