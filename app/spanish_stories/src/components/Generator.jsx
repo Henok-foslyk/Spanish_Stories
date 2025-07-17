@@ -1,42 +1,58 @@
 import { useState } from 'react';
-import axios from 'axios';
 
 function Generator() {
-  const [prompt, setPrompt] = useState('');
-  const [story, setStory] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [title, setTitle] = useState('');
+  const [text, setText] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
-  const generateStory = async () => {
-    if (!prompt) return;
-    setLoading(true);
-    try {
-      const res = await axios.post('http://localhost:5000/generate', { prompt });
-      setStory(res.data);
-    } catch (err) {
-      console.error('Error generating story:', err);
-      alert('Failed to generate story');
+  const handleSubmit = () => {
+    if (!title || !text) {
+      alert('Please enter both title and story text.');
+      return;
     }
-    setLoading(false);
+
+    // You could later POST to your express server here if you want to save to Firestore
+    setSubmitted(true);
   };
 
   return (
     <div style={{ maxWidth: '600px', marginTop: '2rem' }}>
-      <h2>Generate Spanish Story</h2>
+      <h2>Submit Spanish Story</h2>
+
       <input
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="e.g., Un dragón que baila"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Story Title"
+        style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem' }}
+      />
+
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Story text here..."
+        rows={8}
         style={{ width: '100%', padding: '0.5rem' }}
       />
-      <button onClick={generateStory} style={{ marginTop: '1rem' }}>
-        {loading ? 'Generating...' : 'Generate'}
+
+      <input
+        value={audioUrl}
+        onChange={(e) => setAudioUrl(e.target.value)}
+        placeholder="Audio file URL (optional)"
+        style={{ width: '100%', padding: '0.5rem', marginTop: '1rem' }}
+      />
+
+      <button onClick={handleSubmit} style={{ marginTop: '1rem' }}>
+        Submit Story
       </button>
 
-      {story && (
+      {submitted && (
         <div style={{ marginTop: '2rem' }}>
-          <h3>{story.title}</h3>
-          <p>{story.text}</p>
-          <audio controls src={story.audioUrl} style={{ width: '100%' }} />
+          <h3>{title}</h3>
+          <p>{text}</p>
+          {audioUrl && (
+            <audio controls src={audioUrl} style={{ width: '100%' }} />
+          )}
         </div>
       )}
     </div>

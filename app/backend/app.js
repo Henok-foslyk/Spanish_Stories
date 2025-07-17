@@ -1,38 +1,39 @@
 const express = require("express");
 const cors = require("cors");
-const { execSync } = require("child_process");
-const fs = require("fs");
-const { v4: uuidv4 } = require("uuid");
 const admin = require("firebase-admin");
 require("dotenv").config();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
-app.use("/audio", express.static("audio"));  // serve audio files statically
 
-// Initialize Firestore (no storage)
+app.use(cors({
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
+  credentials: true,
+}));
+
+app.use(express.json());
+app.use("/audio", express.static("audio"));
+
 const serviceAccount = require("./firebaseKey.json");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 const db = admin.firestore();
 
+// POST /generate now accepts full story data, no generation inside backend
 app.post("/generate", async (req, res) => {
-  const { prompt } = req.body;
-  const text = `Había una vez un ${prompt} que vivía en el bosque...`; // Use GPT API in production
-  const id = uuidv4();
-  const filepath = `audio/${id}.mp3`;
+  const { title, text, audioUrl } = req.body;
+
+  if (!title || !text) {
+    return res.status(400).send("Missing title or text");
+  }
 
   try {
-    // Call gTTS using Python script
-    execSync(`python3 gtts_helper.py "${text.replace(/"/g, '\\"')}" "${filepath}"`);
-
-    // Save to Firestore with URL to local server
     const story = {
-      title: prompt,
+      title,
       text,
-      audioUrl: `http://localhost:5000/audio/${id}.mp3`,
+      audioUrl: audioUrl || null,
       createdAt: new Date(),
     };
 
@@ -40,10 +41,10 @@ app.post("/generate", async (req, res) => {
     res.json(story);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Failed to generate story.");
+    res.status(500).send("Failed to save story.");
   }
 });
 
-app.listen(5000, () => {
-  console.log("Server running on http://localhost:5000");
+app.listen(5001, () => {
+  console.log("Server running on http://localhost:5001");
 });
